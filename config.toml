@@ -1,0 +1,11 @@
+# 服务器配置
+[server]
+# 监听端口
+port = 8809
+
+# 日志配置
+[logger]
+# 是否输出到控制台
+console_output = true
+# 是否输出到文件
+file_output = true
