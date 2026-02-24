@@ -1,4 +1,5 @@
 #include "router.h"
+#include "tts_handler.h"
 
 void register_all_routes(httplib::Server& server)
 {
@@ -7,14 +8,6 @@ void register_all_routes(httplib::Server& server)
         res.set_content("Hello World!", "text/plain");
     });
 
-    // 后续新增路由，直接在这个函数里加即可，无需动main.cpp
-    // 示例：新增/info路由，返回服务信息
-    server.Get("/info", [](const httplib::Request&, httplib::Response& res) {
-        res.set_content("Screen Control Server v1.0\nC++17 + httplib", "text/plain");
-    });
-
-    // 示例：新增POST路由（如需）
-    server.Post("/post_test", [](const httplib::Request& req, httplib::Response& res) {
-        res.set_content("POST Request Received", "text/plain");
-    });
+    // /tts 路由 - 直接调用 Handle 的方法
+    server.Post("/tts", TTSHandler::handleTTS);
 }
