@@ -84,11 +84,10 @@ if(EXISTS ${MINIAUDIO_INCLUDE_DIR})
     message(STATUS "Found existing miniaudio at ${MINIAUDIO_INCLUDE_DIR}")
 else ()
     message(STATUS "Downloading miniaudio to ${MINIAUDIO_INCLUDE_DIR} ...")
-    set(MINIAUDIO_VERSION 0.11.24)
     FetchContent_Populate(
             miniaudio
             GIT_REPOSITORY https://github.com/mackron/miniaudio.git
-            GIT_TAG Version${MINIAUDIO_VERSION}
+            GIT_TAG 0.11.24
             SOURCE_DIR ${MINIAUDIO_INCLUDE_DIR}
             QUIET
     )
