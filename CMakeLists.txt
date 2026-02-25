@@ -6,7 +6,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 可执行文件输出目录
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+if(WIN32)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin_win64)
+    message(STATUS "Platform: Windows 64-bit")
+else()
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin_arm64)
+        message(STATUS "Platform: Linux ARM64")
+    else()
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin_x64)
+        message(STATUS "Platform: Linux x64")
+    endif()
+endif()
 
 
 
@@ -92,6 +103,21 @@ else ()
             QUIET
     )
 endif()
+# ---------- summertts：文本转语音库 ----------
+set(SUMMERTTS_INCLUDE_DIR ${THIRD_PARTY_DIR}/summertts)
+if(EXISTS ${SUMMERTTS_INCLUDE_DIR})
+    message(STATUS "Found existing summertts at ${SUMMERTTS_INCLUDE_DIR}")
+else ()
+    message(STATUS "Downloading summertts to ${SUMMERTTS_INCLUDE_DIR} ...")
+    set(SUMMERTTS_VERSION 1.0.0)
+    FetchContent_Populate(
+            summertts
+            GIT_REPOSITORY https://github.com/yongwang12138/summertts.git
+            GIT_TAG v${SUMMERTTS_VERSION}
+            SOURCE_DIR ${SUMMERTTS_INCLUDE_DIR}
+            QUIET
+    )
+endif()
 
 
 
@@ -110,6 +136,19 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         ${PLOG_INCLUDE_DIR}/include
         ${HTTPLIB_INCLUDE_DIR}
         ${MINIAUDIO_INCLUDE_DIR}
+        ${SUMMERTTS_INCLUDE_DIR}/lib/include
+)
+
+if(WIN32)
+# ---------- 库文件路径设置 ----------
+target_link_directories(${PROJECT_NAME} PRIVATE
+        ${SUMMERTTS_INCLUDE_DIR}/bin_win
+)
+endif()
+
+# ---------- 链接库 ----------
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        summertts
 )
 
 # ---------- Windows 平台特殊设置 ----------
