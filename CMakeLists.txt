@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 可执行文件输出目录
 if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin_win64)
-    message(STATUS "Platform: Windows 64-bit")
+    message(STATUS "Platform: Windows 64")
 else()
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin_arm64)
@@ -109,7 +109,7 @@ if(EXISTS ${SUMMERTTS_INCLUDE_DIR})
     message(STATUS "Found existing summertts at ${SUMMERTTS_INCLUDE_DIR}")
 else ()
     message(STATUS "Downloading summertts to ${SUMMERTTS_INCLUDE_DIR} ...")
-    set(SUMMERTTS_VERSION 1.0.0)
+    set(SUMMERTTS_VERSION 1.0.1)
     FetchContent_Populate(
             summertts
             GIT_REPOSITORY https://github.com/yongwang12138/summertts.git
@@ -142,7 +142,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 if(WIN32)
 # ---------- 库文件路径设置 ----------
 target_link_directories(${PROJECT_NAME} PRIVATE
-        ${SUMMERTTS_INCLUDE_DIR}/bin_win
+        ${SUMMERTTS_INCLUDE_DIR}/bin_win64
 )
 endif()
 
