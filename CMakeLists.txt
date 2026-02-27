@@ -109,7 +109,7 @@ if(EXISTS ${SUMMERTTS_INCLUDE_DIR})
     message(STATUS "Found existing summertts at ${SUMMERTTS_INCLUDE_DIR}")
 else ()
     message(STATUS "Downloading summertts to ${SUMMERTTS_INCLUDE_DIR} ...")
-    set(SUMMERTTS_VERSION 1.0.1)
+    set(SUMMERTTS_VERSION 1.0.2)
     FetchContent_Populate(
             summertts
             GIT_REPOSITORY https://github.com/yongwang12138/summertts.git
