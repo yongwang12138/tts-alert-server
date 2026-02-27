@@ -144,12 +144,30 @@ if(WIN32)
 target_link_directories(${PROJECT_NAME} PRIVATE
         ${SUMMERTTS_INCLUDE_DIR}/bin_win64
 )
+else()
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+        target_link_directories(${PROJECT_NAME} PRIVATE
+            ${SUMMERTTS_INCLUDE_DIR}/bin_arm64
+        )
+    else()
+        target_link_directories(${PROJECT_NAME} PRIVATE
+            ${SUMMERTTS_INCLUDE_DIR}/bin_x64
+        )
+    endif()
 endif()
 
 # ---------- 链接库 ----------
 target_link_libraries(${PROJECT_NAME} PRIVATE
         summertts
 )
+
+# Linux 系统需要的库
+if(UNIX AND NOT APPLE)  # 这是 Linux 的判断条件
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        dl      # 动态加载库 (dlopen, dlsym)
+        pthread # 线程库 (pthread_create)
+    )
+endif()
 
 # ---------- Windows 平台特殊设置 ----------
 if(WIN32)
