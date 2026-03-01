@@ -2,45 +2,62 @@
 #include "logger.h"
 #include <ctime>
 
+#include "audio_player.h"
+#include "tts_engine.h"
+
 void TTSHandler::handleTTS(const httplib::Request& req, httplib::Response& res) {
-    logger::info("Received /tts request");
+    logger::info("收到 /tts 请求");
 
     json json_data;
     std::string parse_error;
 
-    // 使用基类的工具方法解析JSON
+    // 解析JSON
     if (!BaseHandler::parseJsonBody(req, json_data, parse_error)) {
-        auto response = errorResponse("Invalid JSON format: " + parse_error, 400);
+        auto response = errorResponse("JSON格式错误: " + parse_error, StatusCode::FAIL);
         res.set_content(response.dump(), "application/json");
-        res.status = 400;
+        res.status = 200;
         return;
     }
 
-    if (json_data.contains("text") && json_data["text"].is_string()) {
-        std::string text = json_data["text"];
-
-        // 使用 logger 打印
-        logger::info("========== TTS Request ==========");
-        logger::info("Text: " + text);
-        logger::info("=================================");
-
-        // TODO: 这里添加实际的 TTS 处理逻辑
-
-        // 构造返回数据
-        json data = {
-            {"received_text", text},
-            {"timestamp", std::time(nullptr)},
-        };
-
-        // 返回成功响应（RESTful 格式）- 直接使用基类的方法
-        auto response = successResponse(data, "TTS request processed successfully");
+    // 检查text字段
+    if (!json_data.contains("text") || !json_data["text"].is_string()) {
+        auto response = errorResponse("缺少或无效的 'text' 字段", StatusCode::FAIL);
         res.set_content(response.dump(), "application/json");
         res.status = 200;
-
-    } else {
-        // 返回参数错误 - 直接使用基类的方法
-        auto response = errorResponse("Missing or invalid 'text' field", 400);
-        res.set_content(response.dump(), "application/json");
-        res.status = 400;
+        return;
     }
+
+    std::string text = json_data["text"];
+
+    logger::info("========== TTS 请求 ==========");
+    logger::info("文本: " + text);
+    logger::info("==============================");
+
+    // 文本转语音
+    auto& tts = TTSEngine::instance();
+    auto pcm_data = tts.textToPcm(text);
+
+    if (pcm_data.empty()) {
+        logger::error("语音合成失败");
+        auto response = errorResponse("语音合成失败", StatusCode::FAIL);
+        res.set_content(response.dump(), "application/json");
+        res.status = 200;
+        return;
+    }
+
+    // 播放语音
+    if (!AudioPlayer::instance().playPCM16(pcm_data, 16000)) {
+        logger::error("播放失败");
+        auto response = errorResponse("播放失败", StatusCode::FAIL);
+        res.set_content(response.dump(), "application/json");
+        res.status = 200;
+        return;
+    }
+
+    logger::info("播放成功");
+    
+    // 成功返回
+    auto response = successResponse(json(), "播放成功");
+    res.set_content(response.dump(), "application/json");
+    res.status = 200;
 }

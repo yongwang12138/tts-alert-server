@@ -3,27 +3,19 @@
 
 json BaseHandler::successResponse(const json& data, const std::string& message) {
     json response = {
-        {"code", 200},
-        {"message", message}
+        {"code", static_cast<int>(StatusCode::SUCCESS)},
+        {"msg", message},
+        {"data", data}
     };
-
-    if (!data.is_null()) {
-        response["data"] = data;
-    }
-
     return response;
 }
 
-json BaseHandler::errorResponse(const std::string& message, int code, const json& data) {
+json BaseHandler::errorResponse(const std::string& message, StatusCode code, const json& data) {
     json response = {
-        {"code", code},
-        {"message", message}
+        {"code", static_cast<int>(code)},
+        {"msg", message},
+        {"data", data}
     };
-
-    if (!data.is_null()) {
-        response["data"] = data;
-    }
-
     return response;
 }
 

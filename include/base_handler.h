@@ -6,15 +6,18 @@
 
 using json = nlohmann::json;
 
+// 业务状态码枚举
+enum class StatusCode : int {
+    SUCCESS = 0,    // 成功
+    FAIL  = 7,      // 操作失败
+    NOAUTH = 8      // 无权限
+};
+
 class BaseHandler {
 public:
-    virtual ~BaseHandler() = default;
-
+    static json successResponse(const json& data = json(), const std::string& message = "成功");
+    static json errorResponse(const std::string& message, StatusCode code = StatusCode::FAIL, const json& data = json());
+    
 protected:
-    // RESTful 标准响应格式
-    static json successResponse(const json& data = nullptr, const std::string& message = "success");
-    static json errorResponse(const std::string& message, int code = 400, const json& data = nullptr);
-
-    // 工具方法：解析JSON并返回是否成功
     static bool parseJsonBody(const httplib::Request& req, json& out_json, std::string& error_msg);
 };
