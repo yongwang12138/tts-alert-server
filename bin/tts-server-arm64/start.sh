@@ -39,9 +39,7 @@ SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 
 # ========== 检查服务是否已存在/已自启 ==========
 echo "检查服务状态..."
-# 检查服务文件是否存在
 if [ -f "$SERVICE_PATH" ]; then
-    # 检查服务是否已启用（开机自启）
     if systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
         echo "错误：$SERVICE_NAME 已配置开机自启！"
         echo "🔧 如需重新配置，请先执行：sudo ./stop.sh"
@@ -50,10 +48,27 @@ if [ -f "$SERVICE_PATH" ]; then
 fi
 # =====================================================
 
-# 先停止可能正在运行的服务（防止文件占用）
+# 先停止可能正在运行的服务
 if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     echo "停止已运行的服务..."
     systemctl stop "$SERVICE_NAME"
+fi
+
+# 检测音频系统类型
+echo "检测音频系统..."
+AUDIO_CONFIG=""
+if command -v pulseaudio &>/dev/null; then
+    echo "检测到 PulseAudio"
+    # 获取当前用户的 PulseAudio 运行时路径
+    if [ -d "/run/user/0/pulse" ]; then
+        AUDIO_CONFIG='Environment="PULSE_RUNTIME_PATH=/run/user/0/pulse"'
+    fi
+elif command -v pipewire &>/dev/null; then
+    echo "检测到 PipeWire"
+    AUDIO_CONFIG='Environment="PIPEWIRE_RUNTIME_DIR=/run/user/0"'
+else
+    echo "使用 ALSA"
+    AUDIO_CONFIG='Environment="ALSA_CARD=0"'
 fi
 
 # 创建systemd服务文件
@@ -61,8 +76,9 @@ echo "正在创建systemd服务文件..."
 cat > "$SERVICE_PATH" << EOF
 [Unit]
 Description=TTS Alert Server
-After=multi-user.target sound.target
+After=multi-user.target sound.target dbus.service
 Requires=local-fs.target
+Wants=sound.target
 
 [Service]
 Type=simple
@@ -72,6 +88,24 @@ Restart=always
 RestartSec=3
 User=root
 Group=root
+
+# 音频设备权限
+DeviceAllow=/dev/snd rw
+DeviceAllow=/dev/dsp rw
+DeviceAllow=/dev/audio rw
+SupplementaryGroups=audio
+
+# 音频环境变量
+$AUDIO_CONFIG
+Environment="ALSA_CARD=0"
+Environment="ALSA_DEVICE=default"
+
+# DBus 配置
+Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus"
+
+# 系统限制
+LimitRTPRIO=50
+LimitRTTIME=infinity
 
 [Install]
 WantedBy=multi-user.target
@@ -87,12 +121,31 @@ systemctl enable "$SERVICE_NAME"
 echo "启动服务..."
 systemctl start "$SERVICE_NAME"
 
-# 等待一下让程序有足够时间启动
-sleep 2
+# 等待程序启动
+sleep 3
 
 # 检查服务状态
 echo -e "\n========== 服务状态 =========="
 systemctl status "$SERVICE_NAME" --no-pager
+
+# 检查音频设备
+echo -e "\n========== 音频设备检查 =========="
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    echo "服务运行中，检查音频设备访问..."
+    
+    # 检查进程是否有音频设备文件描述符
+    PID=$(systemctl show -p MainPID --value "$SERVICE_NAME")
+    if [ "$PID" -gt 0 ] && [ "$PID" != "0" ]; then
+        if ls -la /proc/$PID/fd/ 2>/dev/null | grep -E "snd|dsp|audio" >/dev/null; then
+            echo "✅ 进程 $PID 已打开音频设备"
+        else
+            echo "⚠️  进程 $PID 未检测到音频设备打开"
+            echo "   可能原因："
+            echo "   - 程序尚未播放声音"
+            echo "   - 音频设备权限问题"
+        fi
+    fi
+fi
 
 echo -e "\n✅ 配置完成！"
 echo "📌 程序路径：$TARGET_PROGRAM"
@@ -103,3 +156,4 @@ echo "   停止服务：sudo systemctl stop tts-alert-server"
 echo "   查看状态：sudo systemctl status tts-alert-server"
 echo "   关闭自启：sudo systemctl disable tts-alert-server"
 echo "   移除服务：sudo rm $SERVICE_PATH && sudo systemctl daemon-reload"
+echo "   查看实时日志：sudo journalctl -u tts-alert-server -f"
