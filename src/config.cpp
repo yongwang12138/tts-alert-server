@@ -71,7 +71,7 @@ speaker_id = 0
 # 0.5 = 快速
 # 1.0 = 正常
 # 1.5 = 慢速
-speed = 0.8
+speed = 1.0
 )";
         file.close();
         std::cout << "Default config file created: " << path << std::endl;
