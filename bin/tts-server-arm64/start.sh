@@ -42,13 +42,19 @@ echo "检查服务状态..."
 # 检查服务文件是否存在
 if [ -f "$SERVICE_PATH" ]; then
     # 检查服务是否已启用（开机自启）
-    if systemctl is-enabled --quiet "$SERVICE_NAME"; then
+    if systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
         echo "错误：$SERVICE_NAME 已配置开机自启！"
         echo "🔧 如需重新配置，请先执行：sudo ./stop.sh"
         exit 1
     fi
 fi
 # =====================================================
+
+# 先停止可能正在运行的服务（防止文件占用）
+if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    echo "停止已运行的服务..."
+    systemctl stop "$SERVICE_NAME"
+fi
 
 # 创建systemd服务文件
 echo "正在创建systemd服务文件..."
@@ -61,6 +67,7 @@ Requires=local-fs.target
 [Service]
 Type=simple
 ExecStart=$TARGET_PROGRAM
+WorkingDirectory=$SCRIPT_DIR
 Restart=always
 RestartSec=3
 User=root
@@ -80,12 +87,16 @@ systemctl enable "$SERVICE_NAME"
 echo "启动服务..."
 systemctl start "$SERVICE_NAME"
 
+# 等待一下让程序有足够时间启动
+sleep 2
+
 # 检查服务状态
 echo -e "\n========== 服务状态 =========="
 systemctl status "$SERVICE_NAME" --no-pager
 
 echo -e "\n✅ 配置完成！"
 echo "📌 程序路径：$TARGET_PROGRAM"
+echo "📌 工作目录：$SCRIPT_DIR"
 echo "🔧 常用命令："
 echo "   启动服务：sudo systemctl start tts-alert-server"
 echo "   停止服务：sudo systemctl stop tts-alert-server"
