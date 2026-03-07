@@ -76,7 +76,10 @@ ctl.!default {
 }
 EOF
 
-# 创建systemd服务文件（使用root运行）
+# 获取 kylin 用户的 UID
+KYLIN_UID=$(id -u kylin)
+
+# 创建systemd服务文件（使用kylin用户运行）
 echo "正在创建systemd服务文件..."
 cat > "$SERVICE_PATH" << EOF
 [Unit]
@@ -86,15 +89,27 @@ Wants=sound.target
 
 [Service]
 Type=simple
-User=root
-Group=root
-ExecStart=$TARGET_PROGRAM
-WorkingDirectory=$SCRIPT_DIR
+User=kylin
+Group=kylin
 
-# 音频环境变量
+# 库路径 - 让程序能找到同目录的 libsummertts.so
+Environment=LD_LIBRARY_PATH=$SCRIPT_DIR:\$LD_LIBRARY_PATH
+
+# PulseAudio 环境变量 - 让程序能连接到 kylin 的音频服务
+Environment=XDG_RUNTIME_DIR=/run/user/$KYLIN_UID
+Environment=PULSE_RUNTIME_PATH=/run/user/$KYLIN_UID/pulse
+Environment=PULSE_SERVER=unix:/run/user/$KYLIN_UID/pulse/native
+
+# ALSA 环境变量（作为备选）
 Environment=ALSA_CARD=$SOUND_CARD
 Environment=ALSA_DEVICE=plughw:$SOUND_CARD,0
 Environment=ALSA_PCM_CARD=$SOUND_CARD
+
+# 屏蔽 X11 相关报错
+Environment=DISPLAY=
+
+ExecStart=$TARGET_PROGRAM
+WorkingDirectory=$SCRIPT_DIR
 
 # 确保音频权限
 SupplementaryGroups=audio
@@ -131,7 +146,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     
     PID=$(systemctl show -p MainPID --value "$SERVICE_NAME")
     if [ "$PID" -gt 0 ] && [ "$PID" != "0" ]; then
-        echo "进程 $PID 运行用户: root"
+        echo "进程 $PID 运行用户: kylin"
         
         # 检查音频设备访问
         if ls -la /proc/$PID/fd/ 2>/dev/null | grep -E "snd|dsp|audio" >/dev/null; then
@@ -142,25 +157,9 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
     fi
 fi
 
-# 测试音频输出
-echo -e "\n========== 音频测试 =========="
-echo "尝试播放测试音..."
-
-# 先确保设备空闲
-fuser -k /dev/snd/* 2>/dev/null
-sleep 1
-
-# 测试音频
-speaker-test -D plughw:$SOUND_CARD,0 -t sine -f 1000 -l 1
-if [ $? -eq 0 ]; then
-    echo "✅ 音频测试成功（如果能听到声音）"
-else
-    echo "⚠️  音频测试失败，但服务可能仍可正常工作"
-fi
-
 echo -e "\n✅ 配置完成！"
 echo "📌 程序路径：$TARGET_PROGRAM"
-echo "📌 运行用户：root"
+echo "📌 运行用户：kylin"
 echo "📌 工作目录：$SCRIPT_DIR"
 echo "📌 音频设备：card $SOUND_CARD (plughw:$SOUND_CARD,0)"
 echo ""
@@ -172,7 +171,5 @@ echo "   🔄 重启服务：sudo systemctl restart tts-alert-server"
 echo "   📝 查看日志：sudo journalctl -u tts-alert-server -f"
 echo "   ⚙️  关闭自启：sudo systemctl disable tts-alert-server"
 echo "   🗑️  移除服务：sudo rm $SERVICE_PATH && sudo systemctl daemon-reload"
-echo ""
-echo "   💡 测试音频：speaker-test -D plughw:$SOUND_CARD,0 -t sine -f 1000"
 echo ""
 echo "⚠️  注意：如果修改了服务文件，需要执行：sudo systemctl daemon-reload"
