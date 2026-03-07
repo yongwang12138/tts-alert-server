@@ -45,6 +45,13 @@ if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
     systemctl stop "$SERVICE_NAME"
 fi
 
+# ========== 设置目录权限 ==========
+echo "设置目录权限..."
+chown -R kylin:kylin "$SCRIPT_DIR"
+chmod 755 "$SCRIPT_DIR"
+echo "目录权限设置完成！"
+# =================================
+
 # 获取声卡信息
 echo "检测音频设备..."
 SOUND_CARD="1"  # 默认使用 card 1
