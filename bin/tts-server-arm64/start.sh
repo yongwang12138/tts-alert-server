@@ -1,5 +1,5 @@
 #!/bin/bash
-# start.sh - 一键配置tts_alert_server开机自启
+# start.sh - 一键配置tts_server开机自启
 
 # 检查是否以root运行
 if [ "$(id -u)" -ne 0 ]; then
@@ -10,11 +10,11 @@ fi
 # ==================== 自动识别程序路径 ====================
 START_SCRIPT_PATH=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$START_SCRIPT_PATH")
-TARGET_PROGRAM="$SCRIPT_DIR/tts_alert_server"
+TARGET_PROGRAM="$SCRIPT_DIR/tts_server"
 
-# 验证tts_alert_server是否存在
+# 验证tts_server是否存在
 if [ ! -f "$TARGET_PROGRAM" ]; then
-    echo "错误：在当前目录 [$SCRIPT_DIR] 下未找到 tts_alert_server！"
+    echo "错误：在当前目录 [$SCRIPT_DIR] 下未找到 tts_server！"
     exit 1
 fi
 
@@ -25,7 +25,7 @@ fi
 # ==========================================================
 
 # 配置systemd服务参数
-SERVICE_NAME="tts-alert-server.service"
+SERVICE_NAME="tts-server.service" 
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 
 # ========== 检查服务是否已存在/已自启 ==========
@@ -83,7 +83,7 @@ KYLIN_UID=$(id -u kylin)
 echo "正在创建systemd服务文件..."
 cat > "$SERVICE_PATH" << EOF
 [Unit]
-Description=TTS Alert Server
+Description=TTS Server
 After=multi-user.target sound.target
 Wants=sound.target
 
@@ -104,9 +104,6 @@ Environment=PULSE_SERVER=unix:/run/user/$KYLIN_UID/pulse/native
 Environment=ALSA_CARD=$SOUND_CARD
 Environment=ALSA_DEVICE=plughw:$SOUND_CARD,0
 Environment=ALSA_PCM_CARD=$SOUND_CARD
-
-# 屏蔽 X11 相关报错
-Environment=DISPLAY=
 
 ExecStart=$TARGET_PROGRAM
 WorkingDirectory=$SCRIPT_DIR
@@ -164,12 +161,12 @@ echo "📌 工作目录：$SCRIPT_DIR"
 echo "📌 音频设备：card $SOUND_CARD (plughw:$SOUND_CARD,0)"
 echo ""
 echo "🔧 常用命令："
-echo "   🚀 启动服务：sudo systemctl start tts-alert-server"
-echo "   🛑 停止服务：sudo systemctl stop tts-alert-server"
-echo "   📊 查看状态：sudo systemctl status tts-alert-server"
-echo "   🔄 重启服务：sudo systemctl restart tts-alert-server"
-echo "   📝 查看日志：sudo journalctl -u tts-alert-server -f"
-echo "   ⚙️  关闭自启：sudo systemctl disable tts-alert-server"
+echo "   🚀 启动服务：sudo systemctl start tts-server"
+echo "   🛑 停止服务：sudo systemctl stop tts-server"
+echo "   📊 查看状态：sudo systemctl status tts-server"
+echo "   🔄 重启服务：sudo systemctl restart tts-server"
+echo "   📝 查看日志：sudo journalctl -u tts-server -f"
+echo "   ⚙️  关闭自启：sudo systemctl disable tts-server"
 echo "   🗑️  移除服务：sudo rm $SERVICE_PATH && sudo systemctl daemon-reload"
 echo ""
 echo "⚠️  注意：如果修改了服务文件，需要执行：sudo systemctl daemon-reload"
